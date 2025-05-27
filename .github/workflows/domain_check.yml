@@ -1,0 +1,39 @@
+name: Domain Expiry Check and Calendar Generation
+
+on:
+  schedule:
+    # 每天凌晨 2 点运行
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  check-and-generate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Check domain expiry
+      run: python check_domain_expiry.py
+
+    - name: Generate calendar
+      run: python generate_calendar.py
+
+    - name: Commit and push if changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add work_management.yaml domain_expiry_calendar.ics
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update domain expiry dates and calendar [skip ci]" && git push) 
