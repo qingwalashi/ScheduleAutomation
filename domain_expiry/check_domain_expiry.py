@@ -6,11 +6,10 @@ import socket
 import ssl
 import datetime
 import OpenSSL
-import dns.resolver
-from typing import Dict, List, Tuple
 import logging
-import certifi
+import os
 import traceback
+from typing import Dict
 
 # 配置日志
 logging.basicConfig(
@@ -22,7 +21,10 @@ logger = logging.getLogger(__name__)
 def load_config() -> Dict:
     """加载配置文件"""
     try:
-        with open('domain_expiry/domain_expiry.yaml', 'r', encoding='utf-8') as f:
+        # 获取脚本所在目录的绝对路径
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_dir, 'domain_expiry.yaml')
+        with open(config_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
     except Exception as e:
         logger.error(f"读取配置文件失败: {e}")
@@ -31,7 +33,10 @@ def load_config() -> Dict:
 def save_config(config: Dict) -> None:
     """保存配置文件"""
     try:
-        with open('domain_expiry/domain_expiry.yaml', 'w', encoding='utf-8') as f:
+        # 获取脚本所在目录的绝对路径
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_dir, 'domain_expiry.yaml')
+        with open(config_path, 'w', encoding='utf-8') as f:
             yaml.dump(config, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
     except Exception as e:
         logger.error(f"保存配置文件失败: {e}")
