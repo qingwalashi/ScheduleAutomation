@@ -26,14 +26,16 @@ jobs:
         pip install -r requirements.txt
 
     - name: Check domain expiry
+      working-directory: domain_expiry
       run: python check_domain_expiry.py
 
     - name: Generate calendar
+      working-directory: domain_expiry
       run: python generate_calendar.py
 
     - name: Commit and push if changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add work_management.yaml domain_expiry_calendar.ics
+        git add domain_expiry/domain_expiry.yaml domain_expiry/domain_expiry_calendar.ics
         git diff --quiet && git diff --staged --quiet || (git commit -m "Update domain expiry dates and calendar [skip ci]" && git push) 

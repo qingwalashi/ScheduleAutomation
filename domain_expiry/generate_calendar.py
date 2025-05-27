@@ -71,7 +71,7 @@ def save_ics_file(cal, output_path):
 
 def main():
     # 读取YAML文件
-    yaml_data = read_yaml_file('work_management.yaml')
+    yaml_data = read_yaml_file('domain_expiry.yaml')
     
     # 创建日历事件
     calendar = create_calendar_events(yaml_data)
