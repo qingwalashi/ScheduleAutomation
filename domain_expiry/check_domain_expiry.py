@@ -60,6 +60,18 @@ def check_domain_expiry(domain: str) -> datetime.datetime:
 def check_ssl_expiry(domain: str) -> datetime.datetime:
     """检查SSL证书到期时间"""
     try:
+        # 验证域名格式
+        if not domain or not isinstance(domain, str):
+            logger.error(f"无效的域名格式: {domain}")
+            return None
+            
+        # 尝试解析域名
+        try:
+            socket.gethostbyname(domain)
+        except socket.gaierror:
+            logger.error(f"无法解析域名: {domain}")
+            return None
+            
         # 创建SSL上下文
         context = ssl.create_default_context()
         context.check_hostname = False
@@ -73,7 +85,11 @@ def check_ssl_expiry(domain: str) -> datetime.datetime:
         conn.settimeout(10)
         
         # 连接服务器
-        conn.connect((domain, 443))
+        try:
+            conn.connect((domain, 443))
+        except (socket.gaierror, socket.timeout, ConnectionRefusedError) as e:
+            logger.error(f"连接域名 {domain} 失败: {str(e)}")
+            return None
         
         # 获取证书
         cert = conn.getpeercert(binary_form=True)
@@ -100,29 +116,24 @@ def check_ssl_expiry(domain: str) -> datetime.datetime:
 
 def update_config_with_expiry_dates(config: Dict) -> Dict:
     """更新配置文件中的到期时间信息"""
-    # 获取所有需要检查的域名
-    domains_to_check = set()
-    if 'domains_expiry' in config:
-        domains_to_check.update(config['domains_expiry'].keys())
-    if 'domains_ssl_expiry' in config:
-        domains_to_check.update(config['domains_ssl_expiry'].keys())
-
     # 更新域名到期时间信息
     domains_expiry = {}
-    for domain in domains_to_check:
-        expiry_date = check_domain_expiry(domain)
-        if expiry_date:
-            domains_expiry[domain] = expiry_date.strftime('%Y-%m-%d')
-            logger.info(f"域名 {domain} 到期时间: {expiry_date.strftime('%Y-%m-%d')}")
+    if 'domains_expiry' in config:
+        for domain in config['domains_expiry'].keys():
+            expiry_date = check_domain_expiry(domain)
+            if expiry_date:
+                domains_expiry[domain] = expiry_date.strftime('%Y-%m-%d')
+                logger.info(f"域名 {domain} 到期时间: {expiry_date.strftime('%Y-%m-%d')}")
     config['domains_expiry'] = domains_expiry
 
     # 更新SSL证书到期时间信息
     domains_ssl_expiry = {}
-    for domain in domains_to_check:
-        expiry_date = check_ssl_expiry(domain)
-        if expiry_date:
-            domains_ssl_expiry[domain] = expiry_date.strftime('%Y-%m-%d')
-            logger.info(f"域名 {domain} 的SSL证书到期时间: {expiry_date.strftime('%Y-%m-%d')}")
+    if 'domains_ssl_expiry' in config:
+        for domain in config['domains_ssl_expiry'].keys():
+            expiry_date = check_ssl_expiry(domain)
+            if expiry_date:
+                domains_ssl_expiry[domain] = expiry_date.strftime('%Y-%m-%d')
+                logger.info(f"域名 {domain} 的SSL证书到期时间: {expiry_date.strftime('%Y-%m-%d')}")
     config['domains_ssl_expiry'] = domains_ssl_expiry
 
     return config
