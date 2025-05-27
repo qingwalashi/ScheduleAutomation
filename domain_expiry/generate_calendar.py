@@ -3,10 +3,15 @@ import yaml
 from datetime import datetime, timedelta
 from icalendar import Calendar, Event
 import pytz
+import os
 
 def read_yaml_file(file_path):
     """读取YAML文件内容"""
-    with open(file_path, 'r', encoding='utf-8') as file:
+    # 获取脚本所在目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # 构建配置文件的完整路径
+    config_path = os.path.join(script_dir, file_path)
+    with open(config_path, 'r', encoding='utf-8') as file:
         return yaml.safe_load(file)
 
 def create_calendar_events(data):
@@ -66,19 +71,28 @@ def create_calendar_events(data):
 
 def save_ics_file(cal, output_path):
     """保存ICS文件"""
+    # 获取脚本所在目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # 构建输出文件的完整路径
+    output_path = os.path.join(script_dir, output_path)
     with open(output_path, 'wb') as f:
         f.write(cal.to_ical())
 
 def main():
-    # 读取YAML文件
-    yaml_data = read_yaml_file('domain_expiry.yaml')
-    
-    # 创建日历事件
-    calendar = create_calendar_events(yaml_data)
-    
-    # 保存ICS文件
-    save_ics_file(calendar, 'domain_expiry_calendar.ics')
-    print("日历文件已生成: domain_expiry_calendar.ics")
+    try:
+        # 读取YAML文件
+        yaml_data = read_yaml_file('domain_expiry.yaml')
+        
+        # 创建日历事件
+        calendar = create_calendar_events(yaml_data)
+        
+        # 保存ICS文件
+        save_ics_file(calendar, 'domain_expiry_calendar.ics')
+        print("日历文件已生成: domain_expiry_calendar.ics")
+    except Exception as e:
+        print(f"程序执行失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == '__main__':
     main() 

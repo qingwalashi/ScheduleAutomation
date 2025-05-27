@@ -11,9 +11,6 @@ from typing import Dict, List, Tuple
 import logging
 import certifi
 import traceback
-import whois
-import requests
-from urllib.parse import urlparse
 
 # 配置日志
 logging.basicConfig(
@@ -22,74 +19,79 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def load_yaml(file_path):
-    """加载YAML文件"""
-    with open(file_path, 'r', encoding='utf-8') as file:
-        return yaml.safe_load(file)
+def load_config() -> Dict:
+    """加载配置文件"""
+    try:
+        with open('domain_expiry/domain_expiry.yaml', 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        logger.error(f"读取配置文件失败: {e}")
+        raise
 
-def save_yaml(data, file_path):
-    """保存YAML文件"""
-    with open(file_path, 'w', encoding='utf-8') as file:
-        yaml.dump(data, file, allow_unicode=True, sort_keys=False)
+def save_config(config: Dict) -> None:
+    """保存配置文件"""
+    try:
+        with open('domain_expiry/domain_expiry.yaml', 'w', encoding='utf-8') as f:
+            yaml.dump(config, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    except Exception as e:
+        logger.error(f"保存配置文件失败: {e}")
+        raise
 
-def check_domain_expiry(domain):
+def check_domain_expiry(domain: str) -> datetime.datetime:
     """检查域名到期时间"""
     try:
-        w = whois.whois(domain)
-        if w.expiration_date:
-            if isinstance(w.expiration_date, list):
-                return w.expiration_date[0].strftime('%Y-%m-%d')
-            return w.expiration_date.strftime('%Y-%m-%d')
+        # 使用 whois 查询域名信息
+        import whois
+        domain_info = whois.whois(domain)
+        if domain_info.expiration_date:
+            if isinstance(domain_info.expiration_date, list):
+                return domain_info.expiration_date[0]
+            return domain_info.expiration_date
+        return None
     except Exception as e:
-        print(f"检查域名 {domain} 到期时间时出错: {str(e)}")
-    return None
+        logger.error(f"检查域名 {domain} 到期时间失败: {e}")
+        return None
 
-def check_ssl_expiry(domain):
+def check_ssl_expiry(domain: str) -> datetime.datetime:
     """检查SSL证书到期时间"""
     try:
-        # 尝试获取SSL证书
+        # 创建SSL上下文
         context = ssl.create_default_context()
-        with socket.create_connection((domain, 443), timeout=10) as sock:
-            with context.wrap_socket(sock, server_hostname=domain) as ssock:
-                cert = ssock.getpeercert()
-                if cert and 'notAfter' in cert:
-                    # 解析证书到期时间
-                    expiry_date = datetime.datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
-                    return expiry_date.strftime('%Y-%m-%d')
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        
+        # 创建连接
+        conn = context.wrap_socket(
+            socket.socket(socket.AF_INET),
+            server_hostname=domain,
+        )
+        conn.settimeout(10)
+        
+        # 连接服务器
+        conn.connect((domain, 443))
+        
+        # 获取证书
+        cert = conn.getpeercert(binary_form=True)
+        if cert:
+            # 使用OpenSSL解析证书
+            x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1, cert)
+            # 获取到期时间
+            expiry_date = datetime.datetime.strptime(
+                x509.get_notAfter().decode('ascii'),
+                '%Y%m%d%H%M%SZ'
+            )
+            return expiry_date
+            
+        return None
     except Exception as e:
-        print(f"检查域名 {domain} 的SSL证书到期时间时出错: {str(e)}")
-    return None
-
-def check_dns_records(domain):
-    """检查DNS记录"""
-    records = {}
-    record_types = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS']
-    
-    for record_type in record_types:
+        logger.error(f"检查域名 {domain} 的SSL证书到期时间失败: {str(e)}")
+        logger.error(f"详细错误信息: {traceback.format_exc()}")
+        return None
+    finally:
         try:
-            answers = dns.resolver.resolve(domain, record_type)
-            records[record_type] = [str(rdata) for rdata in answers]
-        except Exception as e:
-            print(f"检查域名 {domain} 的 {record_type} 记录时出错: {str(e)}")
-            records[record_type] = []
-    
-    return records
-
-def check_website_status(domain):
-    """检查网站状态"""
-    try:
-        # 尝试访问网站
-        response = requests.get(f'https://{domain}', timeout=10, verify=False)
-        return {
-            'status_code': response.status_code,
-            'is_accessible': 200 <= response.status_code < 400
-        }
-    except Exception as e:
-        print(f"检查域名 {domain} 的网站状态时出错: {str(e)}")
-        return {
-            'status_code': None,
-            'is_accessible': False
-        }
+            conn.close()
+        except:
+            pass
 
 def update_config_with_expiry_dates(config: Dict) -> Dict:
     """更新配置文件中的到期时间信息"""
@@ -105,8 +107,8 @@ def update_config_with_expiry_dates(config: Dict) -> Dict:
     for domain in domains_to_check:
         expiry_date = check_domain_expiry(domain)
         if expiry_date:
-            domains_expiry[domain] = expiry_date
-            logger.info(f"域名 {domain} 到期时间: {expiry_date}")
+            domains_expiry[domain] = expiry_date.strftime('%Y-%m-%d')
+            logger.info(f"域名 {domain} 到期时间: {expiry_date.strftime('%Y-%m-%d')}")
     config['domains_expiry'] = domains_expiry
 
     # 更新SSL证书到期时间信息
@@ -114,8 +116,8 @@ def update_config_with_expiry_dates(config: Dict) -> Dict:
     for domain in domains_to_check:
         expiry_date = check_ssl_expiry(domain)
         if expiry_date:
-            domains_ssl_expiry[domain] = expiry_date
-            logger.info(f"域名 {domain} 的SSL证书到期时间: {expiry_date}")
+            domains_ssl_expiry[domain] = expiry_date.strftime('%Y-%m-%d')
+            logger.info(f"域名 {domain} 的SSL证书到期时间: {expiry_date.strftime('%Y-%m-%d')}")
     config['domains_ssl_expiry'] = domains_ssl_expiry
 
     return config
@@ -124,13 +126,13 @@ def main():
     """主函数"""
     try:
         # 加载配置
-        config = load_yaml('domain_expiry.yaml')
+        config = load_config()
         
         # 更新到期时间信息
         updated_config = update_config_with_expiry_dates(config)
         
         # 保存更新后的配置
-        save_yaml(updated_config, 'domain_expiry.yaml')
+        save_config(updated_config)
         
         logger.info("配置更新完成")
     except Exception as e:
