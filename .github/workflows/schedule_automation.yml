@@ -6,13 +6,25 @@ on:
     - cron: '0 2 * * *'
     # 每周一凌晨 3 点运行订阅服务更新
     - cron: '0 3 * * 1'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
+    inputs:
+      job:
+        description: '选择要执行的任务'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - domain-check
+          - subscription-update
 
 jobs:
   domain-check:
     name: Domain Check and Calendar
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && github.event.schedule == '0 2 * * *'
+    if: |
+      github.event_name == 'schedule' && github.event.schedule == '0 2 * * *' ||
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'domain-check')
     
     steps:
     - name: Checkout repository
@@ -47,7 +59,9 @@ jobs:
   subscription-update:
     name: Subscription Services Update
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' && github.event.schedule == '0 3 * * 1'
+    if: |
+      github.event_name == 'schedule' && github.event.schedule == '0 3 * * 1' ||
+      github.event_name == 'workflow_dispatch' && (github.event.inputs.job == 'all' || github.event.inputs.job == 'subscription-update')
     
     steps:
     - name: Checkout repository
