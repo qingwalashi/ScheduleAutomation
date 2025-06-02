@@ -14,6 +14,41 @@ def read_yaml_file(file_path):
     with open(config_path, 'r', encoding='utf-8') as file:
         return yaml.safe_load(file)
 
+def write_yaml_file(data, file_path):
+    """写入YAML文件内容"""
+    # 获取脚本所在目录
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # 构建配置文件的完整路径
+    config_path = os.path.join(script_dir, file_path)
+    with open(config_path, 'w', encoding='utf-8') as file:
+        yaml.dump(data, file, allow_unicode=True, sort_keys=False)
+
+def check_subscription_status(data):
+    """检查订阅状态并更新"""
+    today = datetime.now().date()
+    updated = False
+
+    for service_id, service_info in data.get('subscription_services', {}).items():
+        # 跳过永久订阅
+        if service_info.get('expiry_date') == 'permanent':
+            if service_info.get('status') != '订阅中':
+                service_info['status'] = '订阅中'
+                updated = True
+            continue
+
+        expiry_date = service_info.get('expiry_date')
+        if not expiry_date:
+            continue
+
+        expiry = datetime.strptime(expiry_date, '%Y-%m-%d').date()
+        new_status = '订阅中' if expiry >= today else '已到期'
+        
+        if service_info.get('status') != new_status:
+            service_info['status'] = new_status
+            updated = True
+
+    return data, updated
+
 def create_calendar_events(data):
     """创建日历事件"""
     cal = Calendar()
@@ -80,12 +115,21 @@ def main():
         # 读取YAML文件
         yaml_data = read_yaml_file('subscription_services.yaml')
         
+        # 检查并更新订阅状态
+        updated_data, status_updated = check_subscription_status(yaml_data)
+        
+        # 如果状态有更新，保存回YAML文件
+        if status_updated:
+            write_yaml_file(updated_data, 'subscription_services.yaml')
+            print("订阅状态已更新")
+        
         # 创建日历事件
-        calendar = create_calendar_events(yaml_data)
+        calendar = create_calendar_events(updated_data)
         
         # 保存ICS文件
         save_ics_file(calendar, 'subscription_services_calendar.ics')
         print("日历文件已生成: subscription_services_calendar.ics")
+        
     except Exception as e:
         print(f"程序执行失败: {str(e)}")
         import traceback

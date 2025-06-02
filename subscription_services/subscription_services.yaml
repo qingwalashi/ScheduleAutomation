@@ -26,7 +26,7 @@ subscription_services:
   sams_2024:
     name: "山姆会员"
     expiry_date: "2025-11-08"
-    cost: 260.00
+    cost: 130.00
     status: "订阅中"
     category: "购物"
 

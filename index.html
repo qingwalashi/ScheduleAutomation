@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服务订阅管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 添加 js-yaml 库用于解析 YAML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">服务订阅管理</h1>
+        
+        <!-- 域名到期信息 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">域名到期信息</h2>
+            <div class="space-y-4">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">域名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">到期日期</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SSL到期日期</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="domainTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 订阅服务信息 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">订阅服务信息</h2>
+            <div class="space-y-4">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">服务名称</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">到期日期</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">费用</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分类</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="subscriptionTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 text-right">
+                    <p class="text-lg font-semibold text-gray-700">总费用：<span id="totalCost" class="text-blue-600">¥0.00</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ICS 订阅地址 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">ICS 订阅地址</h2>
+            <div class="space-y-4">
+                <div class="flex flex-col space-y-4">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-gray-700">域名到期提醒：</span>
+                        <input type="text" id="domainIcsUrl" readonly 
+                               class="flex-1 px-4 py-2 border rounded-lg bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button onclick="copyIcsUrl('domainIcsUrl')" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                            复制
+                        </button>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-gray-700">订阅服务提醒：</span>
+                        <input type="text" id="subscriptionIcsUrl" readonly 
+                               class="flex-1 px-4 py-2 border rounded-lg bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button onclick="copyIcsUrl('subscriptionIcsUrl')" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                            复制
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 分类 emoji 映射
+        const categoryEmojis = {
+            '购物': '🛍️',
+            '效率工具': '⚡',
+            'AI服务': '🤖',
+            '网络服务': '🌐'
+        };
+
+        // 加载 YAML 文件
+        async function loadYamlFile(path) {
+            try {
+                const response = await fetch(path);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const yamlText = await response.text();
+                return jsyaml.load(yamlText);
+            } catch (error) {
+                console.error('Error loading YAML file:', error);
+                return null;
+            }
+        }
+
+        // 渲染域名表格
+        function renderDomainTable(domainConfig) {
+            const tbody = document.getElementById('domainTableBody');
+            tbody.innerHTML = '';
+
+            if (!domainConfig || !domainConfig.domains_expiry) {
+                tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">加载失败</td></tr>';
+                return;
+            }
+
+            for (const domain in domainConfig.domains_expiry) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${domain}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${domainConfig.domains_expiry[domain]}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${domainConfig.domains_ssl_expiry[domain] || '-'}</td>
+                `;
+                tbody.appendChild(row);
+            }
+        }
+
+        // 渲染订阅服务表格
+        function renderSubscriptionTable(subscriptionConfig) {
+            const tbody = document.getElementById('subscriptionTableBody');
+            tbody.innerHTML = '';
+
+            if (!subscriptionConfig || !subscriptionConfig.subscription_services) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">加载失败</td></tr>';
+                return;
+            }
+
+            // 按分类排序服务
+            const services = Object.entries(subscriptionConfig.subscription_services)
+                .sort((a, b) => {
+                    // 首先按分类排序
+                    const categoryCompare = a[1].category.localeCompare(b[1].category);
+                    if (categoryCompare !== 0) return categoryCompare;
+                    // 然后按名称排序
+                    return a[1].name.localeCompare(b[1].name);
+                });
+
+            let totalCost = 0;
+            let currentCategory = '';
+
+            for (const [id, service] of services) {
+                // 如果是新的分类，添加分类标题行
+                if (service.category !== currentCategory) {
+                    currentCategory = service.category;
+                    const categoryRow = document.createElement('tr');
+                    categoryRow.innerHTML = `
+                        <td colspan="5" class="px-6 py-3 bg-gray-50 text-sm font-medium text-gray-700">
+                            ${service.category}
+                        </td>
+                    `;
+                    tbody.appendChild(categoryRow);
+                }
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.expiry_date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">¥${service.cost.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${service.status === '订阅中' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${service.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.category}</td>
+                `;
+                tbody.appendChild(row);
+
+                // 累加总费用
+                if (service.status === '订阅中') {
+                    totalCost += service.cost;
+                }
+            }
+
+            // 更新总费用显示
+            document.getElementById('totalCost').textContent = `¥${totalCost.toFixed(2)}`;
+        }
+
+        // 复制 ICS URL
+        function copyIcsUrl(inputId) {
+            const input = document.getElementById(inputId);
+            input.select();
+            document.execCommand('copy');
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '已复制';
+            btn.classList.add('bg-green-500');
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.remove('bg-green-500');
+            }, 2000);
+        }
+
+        // 获取当前域名
+        function getCurrentDomain() {
+            return window.location.hostname || 'localhost';
+        }
+
+        // 获取 ICS URL
+        function getIcsUrl(filename) {
+            const domain = getCurrentDomain();
+            const protocol = window.location.protocol;
+            const port = window.location.port ? `:${window.location.port}` : '';
+            // 根据文件名确定正确的文件夹路径
+            const folder = filename.includes('domain') ? 'domain_expiry' : 'subscription_services';
+            return `${protocol}//${domain}${port}/${folder}/${filename}`;
+        }
+
+        // 页面加载完成后加载数据并渲染
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 加载域名配置
+                const domainConfig = await loadYamlFile('domain_expiry/domain_expiry.yaml');
+                renderDomainTable(domainConfig);
+
+                // 加载订阅服务配置
+                const subscriptionConfig = await loadYamlFile('subscription_services/subscription_services.yaml');
+                renderSubscriptionTable(subscriptionConfig);
+
+                // 设置 ICS URL
+                document.getElementById('domainIcsUrl').value = getIcsUrl('domain_expiry_calendar.ics');
+                document.getElementById('subscriptionIcsUrl').value = getIcsUrl('subscription_services_calendar.ics');
+            } catch (error) {
+                console.error('Error loading data:', error);
+                // 显示错误信息
+                document.getElementById('domainTableBody').innerHTML = 
+                    '<tr><td colspan="3" class="px-6 py-4 text-center text-red-500">加载数据失败</td></tr>';
+                document.getElementById('subscriptionTableBody').innerHTML = 
+                    '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">加载数据失败</td></tr>';
+            }
+        });
+    </script>
+</body>
+</html> 
