@@ -78,10 +78,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Update subscription services
-      working-directory: subscription_services
-      run: python update_subscription_services.py
-
     - name: Generate subscription calendar
       working-directory: subscription_services
       run: python generate_subscription_calendar.py
