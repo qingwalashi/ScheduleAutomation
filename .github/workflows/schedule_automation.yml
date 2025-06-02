@@ -1,0 +1,80 @@
+name: Schedule Automation
+
+on:
+  schedule:
+    # 每天凌晨 2 点运行域名检查
+    - cron: '0 2 * * *'
+    # 每周一凌晨 3 点运行订阅服务更新
+    - cron: '0 3 * * 1'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  domain-check:
+    name: Domain Check and Calendar
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' && github.event.schedule == '0 2 * * *'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Check domain expiry
+      working-directory: domain_expiry
+      run: python check_domain_expiry.py
+
+    - name: Generate domain calendar
+      working-directory: domain_expiry
+      run: python generate_domain_calendar.py
+
+    - name: Commit and push if changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add domain_expiry/domain_expiry.yaml domain_expiry/domain_expiry_calendar.ics
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update domain expiry dates and calendar [skip ci]" && git push)
+
+  subscription-update:
+    name: Subscription Services Update
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' && github.event.schedule == '0 3 * * 1'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Update subscription services
+      working-directory: subscription_services
+      run: python update_subscription_services.py
+
+    - name: Generate subscription calendar
+      working-directory: subscription_services
+      run: python generate_subscription_calendar.py
+
+    - name: Commit and push if changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add subscription_services/subscription_services.yaml subscription_services/subscription_services_calendar.ics
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update subscription services and calendar [skip ci]" && git push) 
