@@ -44,6 +44,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">到期日期</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">费用</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">剩余|超期天数</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分类</th>
                             </tr>
                         </thead>
@@ -84,6 +85,36 @@
     </div>
 
     <script>
+        // 计算剩余或超期天数
+        function calculateDaysRemaining(expiryDate) {
+            if (!expiryDate || expiryDate === 'permanent') {
+                return null;
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const expiry = new Date(expiryDate);
+            expiry.setHours(0, 0, 0, 0);
+            
+            const diffTime = expiry - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+        }
+
+        // 获取天数显示样式
+        function getDaysDisplayStyle(days) {
+            if (days === null) return 'bg-gray-100 text-gray-800';
+            if (days < 0) return 'bg-red-100 text-red-800'; // 已过期
+            if (days <= 30) return 'bg-orange-100 text-orange-800'; // 30天内
+            return 'bg-green-100 text-green-800'; // 30天以上
+        }
+
+        // 获取天数显示文本
+        function getDaysDisplayText(days) {
+            if (days === null) return '-';
+            return `${Math.abs(days)}天`;
+        }
+
         // 分类 emoji 映射
         const categoryEmojis = {
             '购物': '🛍️',
@@ -120,7 +151,9 @@
             for (const domain in domainConfig.domains_expiry) {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${domain}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <a href="https://${domain}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">${domain}</a>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${domainConfig.domains_expiry[domain]}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${domainConfig.domains_ssl_expiry[domain] || '-'}</td>
                 `;
@@ -157,14 +190,16 @@
                     currentCategory = service.category;
                     const categoryRow = document.createElement('tr');
                     categoryRow.innerHTML = `
-                        <td colspan="5" class="px-6 py-3 bg-gray-50 text-sm font-medium text-gray-700">
-                            ${service.category}
-                        </td>
+                        <td colspan="6" class="px-6 py-3 bg-gray-100 text-sm font-medium text-gray-700">${service.category}</td>
                     `;
                     tbody.appendChild(categoryRow);
                 }
 
                 const row = document.createElement('tr');
+                const daysRemaining = calculateDaysRemaining(service.expiry_date);
+                const daysStyle = getDaysDisplayStyle(daysRemaining);
+                const daysText = getDaysDisplayText(daysRemaining);
+
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.name}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.expiry_date}</td>
@@ -172,6 +207,11 @@
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${service.status === '订阅中' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                             ${service.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${daysStyle}">
+                            ${daysText}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.category}</td>
