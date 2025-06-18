@@ -18,7 +18,7 @@ subscription_services:
   
   dingdong_2024:
     name: "叮咚买菜绿卡"
-    expiry_date: "2026-03-05"
+    expiry_date: "2025-09-03"
     cost: 39.00
     status: "订阅中"
     category: "购物"
