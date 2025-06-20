@@ -60,6 +60,13 @@ subscription_services:
     status: "订阅中"
     category: "AI服务"
 
+  cursor_pro_06:
+    name: "cursor pro"
+    expiry_date: "2025-06-27"
+    cost: 9.90
+    status: "订阅中"
+    category: "AI服务"
+
   # 网络服务
   dogess_2025_S2:
     name: "Dogess SSR"
