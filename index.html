@@ -7,6 +7,136 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 添加 js-yaml 库用于解析 YAML -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <style>
+        /* 添加过渡效果 */
+        .service-group {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .toggle-icon {
+            transition: transform 0.3s ease;
+            display: inline-block;
+            width: 12px;
+            text-align: center;
+        }
+        
+        .toggle-icon.expanded {
+            transform: rotate(90deg);
+        }
+        
+        /* 自定义表格样式 */
+        .sub-table {
+            width: 100%;
+            table-layout: fixed;
+            background-color: #f9fafb;
+        }
+        
+        .sub-table tr {
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .sub-table tr:last-child {
+            border-bottom: none;
+        }
+        
+        .sub-table tr:hover {
+            background-color: #f3f4f6;
+        }
+        
+        /* 主行悬停效果 */
+        .main-row:hover {
+            background-color: #f9fafb;
+        }
+        
+        /* 确保子表格与主表格列宽一致 */
+        .main-table {
+            table-layout: fixed;
+        }
+        
+        .main-table th:nth-child(1),
+        .sub-table th:nth-child(1) {
+            width: 25%;
+        }
+        
+        .main-table th:nth-child(2),
+        .sub-table th:nth-child(2) {
+            width: 15%;
+        }
+        
+        .main-table th:nth-child(3),
+        .sub-table th:nth-child(3) {
+            width: 10%;
+        }
+        
+        .main-table th:nth-child(4),
+        .sub-table th:nth-child(4) {
+            width: 15%;
+        }
+        
+        .main-table th:nth-child(5),
+        .sub-table th:nth-child(5) {
+            width: 15%;
+        }
+        
+        .main-table th:nth-child(6) {
+            width: 20%;
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            
+            .main-table th:nth-child(5),
+            .main-table td:nth-child(5),
+            .sub-table th:nth-child(5),
+            .sub-table td:nth-child(5) {
+                display: none;
+            }
+            
+            .px-6 {
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+            
+            .text-sm {
+                font-size: 0.75rem;
+            }
+            
+            .text-xs {
+                font-size: 0.65rem;
+            }
+            
+            .whitespace-nowrap {
+                white-space: normal;
+            }
+            
+            .costs-container {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+            
+            .costs-container .mx-2 {
+                display: none;
+            }
+        }
+        
+        /* 超小屏幕适配 */
+        @media (max-width: 480px) {
+            .main-table th:nth-child(6),
+            .main-table td:nth-child(6),
+            .sub-table th:nth-child(6),
+            .sub-table td:nth-child(6) {
+                display: none;
+            }
+            
+            .pl-12 {
+                padding-left: 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8">
@@ -37,7 +167,15 @@
             <h2 class="text-2xl font-semibold mb-4 text-gray-700">订阅服务信息</h2>
             <div class="space-y-4">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200 main-table">
+                        <colgroup>
+                            <col style="width: 25%">
+                            <col style="width: 15%">
+                            <col style="width: 10%">
+                            <col style="width: 15%">
+                            <col style="width: 15%">
+                            <col style="width: 20%">
+                        </colgroup>
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">服务名称</th>
@@ -53,7 +191,11 @@
                     </table>
                 </div>
                 <div class="mt-4 text-right">
-                    <p class="text-lg font-semibold text-gray-700">总费用：<span id="totalCost" class="text-blue-600">¥0.00</span></p>
+                    <p class="text-lg font-semibold text-gray-700 flex justify-end costs-container">
+                        <span>总费用：<span id="totalCost" class="text-blue-600">¥0.00</span></span>
+                        <span class="mx-2 text-gray-400">|</span>
+                        <span>订阅中：<span id="activeCost" class="text-green-600">¥0.00</span></span>
+                    </p>
                 </div>
             </div>
         </div>
@@ -63,21 +205,25 @@
             <h2 class="text-2xl font-semibold mb-4 text-gray-700">ICS 订阅地址</h2>
             <div class="space-y-4">
                 <div class="flex flex-col space-y-4">
-                    <div class="flex items-center space-x-4">
-                        <span class="text-gray-700">域名到期提醒：</span>
-                        <input type="text" id="domainIcsUrl" readonly 
-                               class="flex-1 px-4 py-2 border rounded-lg bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button onclick="copyIcsUrl('domainIcsUrl')" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                            复制
-                        </button>
+                    <div class="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
+                        <span class="text-gray-700 whitespace-nowrap">域名到期提醒：</span>
+                        <div class="flex flex-1 items-center space-x-2">
+                            <input type="text" id="domainIcsUrl" readonly 
+                                   class="flex-1 px-4 py-2 border rounded-lg bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            <button onclick="copyIcsUrl('domainIcsUrl')" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap">
+                                复制
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="text-gray-700">订阅服务提醒：</span>
-                        <input type="text" id="subscriptionIcsUrl" readonly 
-                               class="flex-1 px-4 py-2 border rounded-lg bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <button onclick="copyIcsUrl('subscriptionIcsUrl')" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                            复制
-                        </button>
+                    <div class="flex flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4">
+                        <span class="text-gray-700 whitespace-nowrap">订阅服务提醒：</span>
+                        <div class="flex flex-1 items-center space-x-2">
+                            <input type="text" id="subscriptionIcsUrl" readonly 
+                                   class="flex-1 px-4 py-2 border rounded-lg bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            <button onclick="copyIcsUrl('subscriptionIcsUrl')" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap">
+                                复制
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -167,65 +313,221 @@
             tbody.innerHTML = '';
 
             if (!subscriptionConfig || !subscriptionConfig.subscription_services) {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">加载失败</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">加载失败</td></tr>';
                 return;
             }
 
-            // 按分类排序服务
-            const services = Object.entries(subscriptionConfig.subscription_services)
+            // 按名称分组服务
+            const groupedServices = {};
+            for (const [id, service] of Object.entries(subscriptionConfig.subscription_services)) {
+                if (!groupedServices[service.name]) {
+                    groupedServices[service.name] = [];
+                }
+                groupedServices[service.name].push({ id, ...service });
+            }
+
+            // 按分类排序服务组
+            const serviceGroups = Object.entries(groupedServices)
                 .sort((a, b) => {
                     // 首先按分类排序
-                    const categoryCompare = a[1].category.localeCompare(b[1].category);
+                    const categoryCompare = a[1][0].category.localeCompare(b[1][0].category);
                     if (categoryCompare !== 0) return categoryCompare;
                     // 然后按名称排序
-                    return a[1].name.localeCompare(b[1].name);
+                    return a[0].localeCompare(b[0]);
                 });
 
-            let totalCost = 0;
+            let totalActiveCost = 0; // 订阅中的费用
+            let totalAllCost = 0;    // 所有费用（包括已到期）
             let currentCategory = '';
+            let groupIndex = 0;
 
-            for (const [id, service] of services) {
+            for (const [serviceName, services] of serviceGroups) {
                 // 如果是新的分类，添加分类标题行
-                if (service.category !== currentCategory) {
-                    currentCategory = service.category;
+                if (services[0].category !== currentCategory) {
+                    currentCategory = services[0].category;
                     const categoryRow = document.createElement('tr');
                     categoryRow.innerHTML = `
-                        <td colspan="6" class="px-6 py-3 bg-gray-100 text-sm font-medium text-gray-700">${service.category}</td>
+                        <td colspan="6" class="px-6 py-3 bg-gray-100 text-sm font-medium text-gray-700">${services[0].category}</td>
                     `;
                     tbody.appendChild(categoryRow);
                 }
 
-                const row = document.createElement('tr');
-                const daysRemaining = calculateDaysRemaining(service.expiry_date);
-                const daysStyle = getDaysDisplayStyle(daysRemaining);
-                const daysText = getDaysDisplayText(daysRemaining);
+                // 按到期日期降序排序服务
+                services.sort((a, b) => {
+                    if (a.expiry_date === 'permanent') return 1;
+                    if (b.expiry_date === 'permanent') return -1;
+                    return new Date(b.expiry_date) - new Date(a.expiry_date);
+                });
 
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.name}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.expiry_date}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">¥${service.cost.toFixed(2)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${service.status === '订阅中' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                            ${service.status}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${daysStyle}">
-                            ${daysText}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.category}</td>
-                `;
-                tbody.appendChild(row);
+                // 如果只有一个服务，直接显示
+                if (services.length === 1) {
+                    const service = services[0];
+                    const daysRemaining = calculateDaysRemaining(service.expiry_date);
+                    const daysStyle = getDaysDisplayStyle(daysRemaining);
+                    const daysText = getDaysDisplayText(daysRemaining);
 
-                // 累加总费用
-                if (service.status === '订阅中') {
-                    totalCost += service.cost;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.expiry_date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">¥${service.cost.toFixed(2)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${service.status === '订阅中' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${service.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${daysStyle}">
+                                ${daysText}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${service.category}</td>
+                    `;
+                    tbody.appendChild(row);
+
+                    // 累加总费用
+                    totalAllCost += service.cost;
+                    if (service.status === '订阅中') {
+                        totalActiveCost += service.cost;
+                    }
+                } else {
+                    // 多个相同名称的服务，创建可折叠组
+                    const mainService = services[0]; // 最新的服务
+                    const daysRemaining = calculateDaysRemaining(mainService.expiry_date);
+                    const daysStyle = getDaysDisplayStyle(daysRemaining);
+                    const daysText = getDaysDisplayText(daysRemaining);
+
+                    // 计算所有子项的总价格
+                    let totalServiceCost = 0;
+                    let activeServiceCount = 0;
+                    for (const service of services) {
+                        // 累加所有服务的费用，无论状态如何
+                        totalServiceCost += service.cost;
+                        
+                        if (service.status === '订阅中') {
+                            activeServiceCount++;
+                        }
+                    }
+
+                    // 主行（可点击展开）
+                    const mainRow = document.createElement('tr');
+                    mainRow.className = 'cursor-pointer hover:bg-gray-50 main-row';
+                    const currentGroupIndex = groupIndex;
+                    mainRow.addEventListener('click', function() {
+                        toggleServiceGroup(currentGroupIndex);
+                    });
+                    mainRow.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <div class="flex items-center">
+                                <span class="mr-2 text-gray-500 toggle-icon group-toggle-${groupIndex}">►</span>
+                                ${serviceName} <span class="ml-2 text-xs text-gray-500">(${services.length}个)</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${mainService.expiry_date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">¥${totalServiceCost.toFixed(2)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${activeServiceCount > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${activeServiceCount > 0 ? '订阅中' : '已到期'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${daysStyle}">
+                                ${daysText}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${mainService.category}</td>
+                    `;
+                    tbody.appendChild(mainRow);
+
+                    // 子行（默认隐藏）
+                    const subRowsContainer = document.createElement('tr');
+                    subRowsContainer.className = `service-group service-group-${groupIndex} hidden`;
+                    subRowsContainer.innerHTML = '<td colspan="6" class="p-0"></td>';
+                    const subRowsCell = subRowsContainer.querySelector('td');
+                    
+                    // 创建子表格
+                    const subTable = document.createElement('table');
+                    subTable.className = 'sub-table';
+                    
+                    // 创建colgroup元素，与主表格保持一致
+                    const colgroup = document.createElement('colgroup');
+                    colgroup.innerHTML = `
+                        <col style="width: 25%">
+                        <col style="width: 15%">
+                        <col style="width: 10%">
+                        <col style="width: 15%">
+                        <col style="width: 15%">
+                        <col style="width: 20%">
+                    `;
+                    subTable.appendChild(colgroup);
+                    
+                    // 创建表体
+                    const subTbody = document.createElement('tbody');
+                    subTbody.className = 'bg-gray-50';
+                    subTable.appendChild(subTbody);
+                    
+                    // 添加子服务行
+                    for (const service of services) {
+                        const subDaysRemaining = calculateDaysRemaining(service.expiry_date);
+                        const subDaysStyle = getDaysDisplayStyle(subDaysRemaining);
+                        const subDaysText = getDaysDisplayText(subDaysRemaining);
+                        
+                        const subRow = document.createElement('tr');
+                        subRow.className = 'transition-colors hover:bg-gray-100';
+                        subRow.innerHTML = `
+                            <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-600 pl-12">${service.name}</td>
+                            <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-600">${service.expiry_date}</td>
+                            <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-600">¥${service.cost.toFixed(2)}</td>
+                            <td class="px-6 py-3 whitespace-nowrap text-sm">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${service.status === '订阅中' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${service.status}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 whitespace-nowrap text-sm">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${subDaysStyle}">
+                                    ${subDaysText}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-600">${service.category}</td>
+                        `;
+                        subTbody.appendChild(subRow);
+                    }
+                    
+                    subRowsCell.appendChild(subTable);
+                    tbody.appendChild(subRowsContainer);
+                    groupIndex++;
+                    
+                    // 累加总费用
+                    totalAllCost += totalServiceCost;
+                    
+                    // 累加活跃服务的费用
+                    for (const service of services) {
+                        if (service.status === '订阅中') {
+                            totalActiveCost += service.cost;
+                        }
+                    }
                 }
             }
 
             // 更新总费用显示
-            document.getElementById('totalCost').textContent = `¥${totalCost.toFixed(2)}`;
+            document.getElementById('totalCost').textContent = `¥${totalAllCost.toFixed(2)}`;
+            document.getElementById('activeCost').textContent = `¥${totalActiveCost.toFixed(2)}`;
+        }
+
+        // 切换服务组显示/隐藏
+        function toggleServiceGroup(groupIndex) {
+            const groupRows = document.querySelectorAll(`.service-group-${groupIndex}`);
+            const toggleIcon = document.querySelector(`.group-toggle-${groupIndex}`);
+            
+            if (groupRows.length > 0) {
+                groupRows.forEach(row => {
+                    row.classList.toggle('hidden');
+                });
+                
+                if (toggleIcon) {
+                    toggleIcon.classList.toggle('expanded');
+                }
+            }
         }
 
         // 复制 ICS URL
@@ -280,7 +582,7 @@
                 document.getElementById('domainTableBody').innerHTML = 
                     '<tr><td colspan="3" class="px-6 py-4 text-center text-red-500">加载数据失败</td></tr>';
                 document.getElementById('subscriptionTableBody').innerHTML = 
-                    '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">加载数据失败</td></tr>';
+                    '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">加载数据失败</td></tr>';
             }
         });
     </script>
