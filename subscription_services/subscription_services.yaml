@@ -69,41 +69,41 @@ subscription_services:
     name: Dogess SSR
     expiry_date: '2025-04-13'
     cost: 59.8
-    status: 订阅中
+    status: 已到期
     category: 网络服务
   dogess_2024_S4:
     name: Dogess SSR
     expiry_date: '2025-01-11'
     cost: 59.8
-    status: 订阅中
+    status: 已到期
     category: 网络服务
   dogess_2024_S3:
     name: Dogess SSR
     expiry_date: '2024-10-12'
     cost: 59.8
-    status: 订阅中
+    status: 已到期
     category: 网络服务
   dogess_2024_S2:
     name: Dogess SSR
     expiry_date: '2024-07-13'
     cost: 59.8
-    status: 订阅中
+    status: 已到期
     category: 网络服务
   dogess_2024_S1:
     name: Dogess SSR
     expiry_date: '2024-04-11'
     cost: 59.8
-    status: 订阅中
+    status: 已到期
     category: 网络服务
   dogess_2023_S4:
     name: Dogess SSR
     expiry_date: '2024-01-05'
     cost: 59.8
-    status: 订阅中
+    status: 已到期
     category: 网络服务
   dogess_2023_S3:
     name: Dogess SSR
     expiry_date: '2023-10-07'
     cost: 59.8
-    status: 订阅中
+    status: 已到期
     category: 网络服务
