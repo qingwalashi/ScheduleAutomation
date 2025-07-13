@@ -41,17 +41,23 @@ subscription_services:
     cost: 10.0
     status: 订阅中
     category: AI服务
+  cursor_pro_07_02:
+    name: cursor pro
+    expiry_date: '2025-07-20'
+    cost: 9.9
+    status: 订阅中
+    category: AI服务
+  cursor_pro_07_01:
+    name: cursor pro
+    expiry_date: '2025-07-12'
+    cost: 9.9
+    status: 订阅中
+    category: AI服务
   cursor_pro_06:
     name: cursor pro
     expiry_date: '2025-06-27'
     cost: 9.9
     status: 已到期
-    category: AI服务
-  cursor_pro_07:
-    name: cursor pro
-    expiry_date: '2025-07-12'
-    cost: 9.9
-    status: 订阅中
     category: AI服务
   dogess_2025_S3:
     name: Dogess SSR
