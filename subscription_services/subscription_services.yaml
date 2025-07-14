@@ -51,7 +51,7 @@ subscription_services:
     name: cursor pro
     expiry_date: '2025-07-12'
     cost: 9.9
-    status: 订阅中
+    status: 已到期
     category: AI服务
   cursor_pro_06:
     name: cursor pro
