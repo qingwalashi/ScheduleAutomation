@@ -41,6 +41,12 @@ subscription_services:
     cost: 10.0
     status: 订阅中
     category: AI服务
+  cursor_pro_08:
+    name: iCursor
+    expiry_date: '2025-08-29'
+    cost: 8.66
+    status: 订阅中
+    category: AI服务
   cursor_pro_07_02:
     name: cursor pro
     expiry_date: '2025-07-20'
