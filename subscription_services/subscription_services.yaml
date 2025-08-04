@@ -41,10 +41,10 @@ subscription_services:
     cost: 10.0
     status: 订阅中
     category: AI服务
-  cursor_pro_08:
-    name: iCursor
-    expiry_date: '2025-08-29'
-    cost: 8.66
+  augment_code_08:
+    name: augment续杯
+    expiry_date: '2025-08-10'
+    cost: 20
     status: 订阅中
     category: AI服务
   cursor_pro_07_02:
