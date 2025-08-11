@@ -45,11 +45,11 @@ subscription_services:
     name: augment续杯
     expiry_date: '2025-08-10'
     cost: 20
-    status: 订阅中
+    status: 已到期
     category: AI服务
   cursor_pro_08:
     name: cursor pro
-    expiry_date: '2025-09-9'
+    expiry_date: 2025-09-9
     cost: 29.9
     status: 订阅中
     category: AI服务
