@@ -2,4 +2,14 @@ domains_expiry:
   nbgzy.com: '2026-06-14'
   nbxc.net: '2026-06-14'
   qingwalashi.cn: '2027-05-18'
-domains_ssl_expiry: {}
+  assetcloud.dningbo.com: '2030-11-17'
+  asset.nbtsg.cn: '2026-04-13'
+  manage.nbtsg.cn: '2026-04-13'
+  gzgqgw.dningbo.com: '2030-11-17'
+domains_ssl_expiry:
+  https://nbgzy.com: null
+  https://nbxc.net: null
+  https://assetcloud.dningbo.com:8803: '2025-09-14'
+  https://asset.nbtsg.cn:8801: '2025-10-22'
+  https://manage.nbtsg.cn:8801: null
+  https://gzgqgw.dningbo.com:8076: '2025-07-16'

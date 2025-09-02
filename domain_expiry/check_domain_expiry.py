@@ -10,6 +10,7 @@ import logging
 import os
 import traceback
 from typing import Dict
+from urllib.parse import urlparse
 
 # 配置日志
 logging.basicConfig(
@@ -57,6 +58,34 @@ def check_domain_expiry(domain: str) -> datetime.datetime:
         logger.error(f"检查域名 {domain} 到期时间失败: {e}")
         return None
 
+def _parse_host_port(domain: str) -> tuple[str, int]:
+    """从输入中解析主机与端口，支持如下格式：
+    - host
+    - host:port
+    - https://host
+    - https://host:port
+    其他 scheme 一律默认用 443 端口进行 TLS 连接。
+    """
+    if not domain:
+        return None, None
+    d = domain.strip()
+    # 先尝试当作 URL 解析
+    parsed = urlparse(d)
+    if parsed.scheme and parsed.netloc:
+        host = parsed.hostname
+        port = parsed.port or (443 if parsed.scheme.lower() == 'https' else 443)
+        return host, port
+    # 非 URL，处理 host:port
+    if ':' in d and d.count(':') == 1:
+        host, port_str = d.split(':', 1)
+        try:
+            port = int(port_str)
+        except ValueError:
+            port = 443
+        return host.strip(), port
+    # 仅 host
+    return d, 443
+
 def check_ssl_expiry(domain: str) -> datetime.datetime:
     """检查SSL证书到期时间"""
     try:
@@ -64,10 +93,16 @@ def check_ssl_expiry(domain: str) -> datetime.datetime:
         if not domain or not isinstance(domain, str):
             logger.error(f"无效的域名格式: {domain}")
             return None
-            
-        # 尝试解析域名
+        
+        # 解析主机与端口
+        host, port = _parse_host_port(domain)
+        if not host or not port:
+            logger.error(f"无法从输入解析主机和端口: {domain}")
+            return None
+        
+        # 尝试解析主机名
         try:
-            socket.gethostbyname(domain)
+            socket.gethostbyname(host)
         except socket.gaierror:
             logger.error(f"无法解析域名: {domain}")
             return None
@@ -80,13 +115,13 @@ def check_ssl_expiry(domain: str) -> datetime.datetime:
         # 创建连接
         conn = context.wrap_socket(
             socket.socket(socket.AF_INET),
-            server_hostname=domain,
+            server_hostname=host,
         )
         conn.settimeout(10)
         
         # 连接服务器
         try:
-            conn.connect((domain, 443))
+            conn.connect((host, port))
         except (socket.gaierror, socket.timeout, ConnectionRefusedError) as e:
             logger.error(f"连接域名 {domain} 失败: {str(e)}")
             return None
@@ -116,25 +151,29 @@ def check_ssl_expiry(domain: str) -> datetime.datetime:
 
 def update_config_with_expiry_dates(config: Dict) -> Dict:
     """更新配置文件中的到期时间信息"""
-    # 更新域名到期时间信息
-    domains_expiry = {}
-    if 'domains_expiry' in config:
-        for domain in config['domains_expiry'].keys():
-            expiry_date = check_domain_expiry(domain)
-            if expiry_date:
-                domains_expiry[domain] = expiry_date.strftime('%Y-%m-%d')
-                logger.info(f"域名 {domain} 到期时间: {expiry_date.strftime('%Y-%m-%d')}")
-    config['domains_expiry'] = domains_expiry
+    # 更新域名到期时间信息（仅在查询成功时覆盖原值，失败则保留原值，不删除任何域名行）
+    original_domains_expiry = config.get('domains_expiry', {}) or {}
+    updated_domains_expiry = dict(original_domains_expiry)
+    for domain in original_domains_expiry.keys():
+        expiry_date = check_domain_expiry(domain)
+        if expiry_date:
+            updated_domains_expiry[domain] = expiry_date.strftime('%Y-%m-%d')
+            logger.info(f"域名 {domain} 到期时间: {expiry_date.strftime('%Y-%m-%d')}")
+        else:
+            logger.info(f"域名 {domain} 到期时间查询失败，保留原值: {original_domains_expiry.get(domain)}")
+    config['domains_expiry'] = updated_domains_expiry
 
-    # 更新SSL证书到期时间信息
-    domains_ssl_expiry = {}
-    if 'domains_ssl_expiry' in config:
-        for domain in config['domains_ssl_expiry'].keys():
-            expiry_date = check_ssl_expiry(domain)
-            if expiry_date:
-                domains_ssl_expiry[domain] = expiry_date.strftime('%Y-%m-%d')
-                logger.info(f"域名 {domain} 的SSL证书到期时间: {expiry_date.strftime('%Y-%m-%d')}")
-    config['domains_ssl_expiry'] = domains_ssl_expiry
+    # 更新SSL证书到期时间信息（同样策略：只覆盖成功的，不删除条目）
+    original_domains_ssl_expiry = config.get('domains_ssl_expiry', {}) or {}
+    updated_domains_ssl_expiry = dict(original_domains_ssl_expiry)
+    for domain in original_domains_ssl_expiry.keys():
+        expiry_date = check_ssl_expiry(domain)
+        if expiry_date:
+            updated_domains_ssl_expiry[domain] = expiry_date.strftime('%Y-%m-%d')
+            logger.info(f"域名 {domain} 的SSL证书到期时间: {expiry_date.strftime('%Y-%m-%d')}")
+        else:
+            logger.info(f"域名 {domain} 的SSL证书到期时间查询失败，保留原值: {original_domains_ssl_expiry.get(domain)}")
+    config['domains_ssl_expiry'] = updated_domains_ssl_expiry
 
     return config
 

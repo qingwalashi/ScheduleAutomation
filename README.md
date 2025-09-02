@@ -1,126 +1,108 @@
 # 日程自动化管理系统
 
-这个项目用于自动化管理各类日程提醒，包括但不限于域名到期、证书到期、工作安排、个人事项等。通过统一的配置和自动化流程，帮助用户更好地管理各类重要时间节点。
+用于自动化管理各类日程提醒：域名到期、SSL 证书到期、以及订阅服务等。通过统一配置与自动化流程，帮助你及时跟进重要时间节点。
 
 ## 功能模块
 
-### 1. 域名管理模块
-- 域名到期提醒
-- SSL证书到期提醒
-- 自动生成日历事件
-- 提前7天提醒功能
+* __域名管理__：
+  - 域名到期提醒（按天）
+  - SSL 证书到期提醒（支持含协议/端口的目标，如 `https://host:port`）
+  - 自动生成 ICS 日历，包含“到期当天事件 + 提前 7 天提醒事件”
 
-### 2. 工作管理模块（待建）
-- 项目截止日期提醒
-- 会议安排提醒
-- 任务截止日期提醒
+* __订阅服务__：
+  - 订阅到期提醒、费用展示、分类聚合
+  - 前端表格高亮将到期状态与剩余/超期天数
 
-### 3. 个人管理模块（待建）
-- 重要日期提醒
-- 纪念日提醒
-- 个人待办事项提醒
+* __前端仪表盘__：
+  - 页面：`index.html`
+  - 模块拆分：域名到期、证书到期、订阅服务独立展示
+  - 失败兜底：数据加载失败时分别对各表格展示错误行
 
 ## 系统特点
 
-- 支持多种提醒类型
-- 自动生成标准 ICS 日历文件
-- 支持提前提醒功能
-- 使用中国时区（Asia/Shanghai）
-- 自动化检查和更新
-- 支持 GitHub Actions 自动运行
+* __标准 ICS__：自动生成标准 ICS 文件
+* __提前提醒__：默认提前 7 天事件
+* __中国时区__：Asia/Shanghai
+* __自动化__：支持 GitHub Actions 定时执行（见 `.github/workflows/schedule_automation.yml`）
 
-## 安装要求
+## 环境要求
 
-- Python 3.6 或更高版本
-- 必要的 Python 包（见 requirements.txt）
+* __Python__：3.8 或更高版本（建议）
+* __依赖__：见 `requirements.txt`
 
-## 安装步骤
+## 快速开始
 
-1. 克隆或下载本项目到本地
-
-2. 安装依赖包：
+1) 安装依赖
 ```bash
 pip install -r requirements.txt
 ```
 
-## 配置文件
+2) 配置 YAML
 
-项目使用 YAML 格式的配置文件来管理各类提醒事项。每个模块都有其对应的配置文件：
-
-### 域名管理配置 (domain_expiry.yaml)
+位于 `domain_expiry/domain_expiry.yaml`：
 ```yaml
 domains_expiry:
-  example.com: '2025-06-14'
-  example.org: '2025-06-14'
+  example.com: '2026-06-14'
+  example.org: '2027-05-18'
 domains_ssl_expiry:
-  example.com: '2025-06-17'
-  example.org: '2025-06-17'
+  https://example.com: null
+  https://example.org: '2025-10-22'
 ```
 
-### 工作管理配置 (work_management.yaml)
+位于 `subscription_services/subscription_services.yaml`：
 ```yaml
-project_deadlines:
-  project1: '2024-12-31'
-  project2: '2024-12-31'
-meetings:
-  weekly_meeting: '2024-12-31'
-tasks:
-  task1: '2024-12-31'
+subscription_services:
+  jd_2025:
+    name: 京东PLUS
+    expiry_date: '2026-03-05'
+    cost: 99.0
+    status: 订阅中
+    category: 购物
 ```
 
-### 个人管理配置 (personal_management.yaml)
-```yaml
-important_dates:
-  birthday: '2024-12-31'
-  anniversary: '2024-12-31'
-todos:
-  task1: '2024-12-31'
-```
-
-## 使用方法
-
-1. 配置相应的 YAML 文件
-
-2. 运行对应的脚本生成日历文件：
+3) 生成 ICS 文件
 ```bash
-# 域名管理
-python domain_expiry/generate_calendar.py
+# 域名与证书到期 ICS（输出：domain_expiry/domain_expiry_calendar.ics）
+python domain_expiry/generate_domain_calendar.py
 
-# 工作管理
-python work_management/generate_calendar.py
-
-# 个人管理
-python personal_management/generate_calendar.py
+# 订阅服务 ICS（输出：subscription_services/subscription_services_calendar.ics）
+python subscription_services/generate_subscription_calendar.py
 ```
 
-3. 将生成的 ICS 文件导入到你的日历应用中：
-   - Google Calendar
-   - Apple Calendar
-   - Microsoft Outlook
-   - 其他支持 ICS 格式的日历应用
+4) 打开前端页面
 
-## 自动化运行
+直接在浏览器打开根目录下的 `index.html`。
+页面会读取上述 YAML 并渲染表格，同时提供 ICS 链接输入框，便于复制到日历应用。
 
-项目使用 GitHub Actions 实现自动化运行：
+## 配置说明与最佳实践
 
-- 每天自动检查域名和证书状态
-- 自动更新配置文件
-- 自动生成最新的日历文件
-- 自动提交更改
+* __日期格式__：统一使用 `YYYY-MM-DD`。对于 SSL 证书目标，允许为 `null`（未知或未采集），前端显示“未知”，日历生成脚本将跳过。
+* __SSL 目标格式__：`domains_ssl_expiry` 的键可包含协议与端口（如 `https://asset.example.com:8801`）。
+* __容错__：`generate_domain_calendar.py` 会自动跳过空值/非法日期，避免生成 ICS 时报错。
+* __路径__：默认输出到各自模块目录下的 `.ics` 文件；如需变更，可调整脚本输出路径或前端 `index.html` 中的 ICS URL 拼装逻辑。
 
-## 注意事项
+## 自动化运行（可选）
 
-- 确保 YAML 文件中的日期格式为 'YYYY-MM-DD'
-- 生成的日历文件使用中国时区
-- 所有提醒事件都设置为全天事件
-- 定期检查配置文件确保信息准确
+项目包含 GitHub Actions 工作流 `schedule_automation.yml`，可用于：
 
-## 依赖包
+* __定时任务__：每天检查与更新
+* __自动产物__：生成并提交最新 ICS 文件
 
-- pyyaml: 用于读取 YAML 配置文件
-- icalendar: 用于生成 ICS 日历文件
-- pytz: 用于处理时区
-- python-whois: 用于检查域名信息
-- pyOpenSSL: 用于检查 SSL 证书
-- dnspython: 用于 DNS 记录检查
-- requests: 用于网站状态检查 
+## 依赖清单
+
+详见 `requirements.txt`，主要包括：
+
+* __pyyaml__：解析 YAML 配置
+* __icalendar__：生成 ICS 文件
+* __pytz__：时区处理
+* __python-whois__：域名信息（可选）
+* __pyOpenSSL__：证书信息（可选）
+* __dnspython__：DNS 查询（可选）
+* __certifi__：证书信任（可选）
+
+## 常见问题
+
+* __SSL 配置为 null 怎么办？__
+  - 前端显示“未知”，ICS 生成时会被跳过，不会报错。
+* __如何只导入某一类提醒？__
+  - 分别使用两个 ICS 文件，按需导入。

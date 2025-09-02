@@ -217,9 +217,9 @@
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">服务订阅管理</h1>
         
-        <!-- 域名到期信息 -->
+        <!-- 域名到期 -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">域名到期信息</h2>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">域名到期</h2>
             <div class="space-y-4">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -227,10 +227,32 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">域名</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">到期日期</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SSL到期日期</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">剩余|超期天数</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200" id="domainTableBody">
+                        <tbody class="bg-white divide-y divide-gray-200" id="domainExpiryTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 域名证书到期 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">域名证书到期</h2>
+            <div class="space-y-4">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">目标</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">证书到期</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">剩余|超期天数</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="domainSSLTableBody">
                         </tbody>
                     </table>
                 </div>
@@ -351,24 +373,72 @@
             }
         }
 
-        // 渲染域名表格
-        function renderDomainTable(domainConfig) {
-            const tbody = document.getElementById('domainTableBody');
+        // 状态徽章
+        function getStatusBadge(days) {
+            if (days === null) {
+                return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">-</span>';
+            }
+            if (days < 0) {
+                return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">已过期</span>';
+            }
+            return '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">未到期</span>';
+        }
+
+        // 渲染域名到期表格
+        function renderDomainExpiryTable(domainConfig) {
+            const tbody = document.getElementById('domainExpiryTableBody');
             tbody.innerHTML = '';
 
             if (!domainConfig || !domainConfig.domains_expiry) {
-                tbody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">加载失败</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">加载失败</td></tr>';
                 return;
             }
 
             for (const domain in domainConfig.domains_expiry) {
+                const expiry = domainConfig.domains_expiry[domain];
+                const daysRemaining = calculateDaysRemaining(expiry);
+                const daysStyle = getDaysDisplayStyle(daysRemaining);
+                const daysText = getDaysDisplayText(daysRemaining);
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         <a href="https://${domain}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">${domain}</a>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${domainConfig.domains_expiry[domain]}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${domainConfig.domains_ssl_expiry[domain] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${expiry}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${getStatusBadge(daysRemaining)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${daysStyle}">${daysText}</span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            }
+        }
+
+        // 渲染域名证书到期表格
+        function renderDomainSSLTable(domainConfig) {
+            const tbody = document.getElementById('domainSSLTableBody');
+            tbody.innerHTML = '';
+
+            if (!domainConfig || !domainConfig.domains_ssl_expiry) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">加载失败</td></tr>';
+                return;
+            }
+
+            for (const target in domainConfig.domains_ssl_expiry) {
+                const expiry = domainConfig.domains_ssl_expiry[target];
+                const daysRemaining = calculateDaysRemaining(expiry);
+                const daysStyle = getDaysDisplayStyle(daysRemaining);
+                const daysText = getDaysDisplayText(daysRemaining);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <a href="${target}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">${target}</a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${expiry || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${getStatusBadge(daysRemaining)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${daysStyle}">${daysText}</span>
+                    </td>
                 `;
                 tbody.appendChild(row);
             }
@@ -622,7 +692,8 @@
             try {
                 // 加载域名配置
                 const domainConfig = await loadYamlFile('domain_expiry/domain_expiry.yaml');
-                renderDomainTable(domainConfig);
+                renderDomainExpiryTable(domainConfig);
+                renderDomainSSLTable(domainConfig);
 
                 // 加载订阅服务配置
                 const subscriptionConfig = await loadYamlFile('subscription_services/subscription_services.yaml');
@@ -634,10 +705,18 @@
             } catch (error) {
                 console.error('Error loading data:', error);
                 // 显示错误信息
-                document.getElementById('domainTableBody').innerHTML = 
-                    '<tr><td colspan="3" class="px-6 py-4 text-center text-red-500">加载数据失败</td></tr>';
-                document.getElementById('subscriptionTableBody').innerHTML = 
-                    '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">加载数据失败</td></tr>';
+                const expiryBody = document.getElementById('domainExpiryTableBody');
+                if (expiryBody) {
+                    expiryBody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">加载数据失败</td></tr>';
+                }
+                const sslBody = document.getElementById('domainSSLTableBody');
+                if (sslBody) {
+                    sslBody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">加载数据失败</td></tr>';
+                }
+                const subBody = document.getElementById('subscriptionTableBody');
+                if (subBody) {
+                    subBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">加载数据失败</td></tr>';
+                }
             }
         });
     </script>
