@@ -100,12 +100,6 @@
                 padding-right: 0.5rem;
             }
             
-            .main-table th:nth-child(5),
-            .main-table td:nth-child(5),
-            .sub-table td:nth-child(5) {
-                display: none;
-            }
-            
             .px-6 {
                 padding-left: 0.75rem;
                 padding-right: 0.75rem;
@@ -176,12 +170,6 @@
         
         /* 超小屏幕适配 */
         @media (max-width: 480px) {
-            .main-table th:nth-child(6),
-            .main-table td:nth-child(6),
-            .sub-table td:nth-child(6) {
-                display: none;
-            }
-            
             .pl-12 {
                 padding-left: 0.5rem;
             }
@@ -264,7 +252,7 @@
             <h2 class="text-2xl font-semibold mb-4 text-gray-700">订阅服务信息</h2>
             <div class="space-y-4">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 main-table">
+                    <table class="min-w-max divide-y divide-gray-200 main-table">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">服务名称</th>
@@ -582,9 +570,11 @@
                     subRowsContainer.innerHTML = '<td colspan="6" class="p-0"></td>';
                     const subRowsCell = subRowsContainer.querySelector('td');
                     
-                    // 创建子表格
+                    // 创建子表格（加入横向滚动容器）
+                    const subWrapper = document.createElement('div');
+                    subWrapper.className = 'overflow-x-auto';
                     const subTable = document.createElement('table');
-                    subTable.className = 'sub-table';
+                    subTable.className = 'sub-table min-w-max';
                     
                     // 创建表体
                     const subTbody = document.createElement('tbody');
@@ -617,8 +607,8 @@
                         `;
                         subTbody.appendChild(subRow);
                     }
-                    
-                    subRowsCell.appendChild(subTable);
+                    subWrapper.appendChild(subTable);
+                    subRowsCell.appendChild(subWrapper);
                     tbody.appendChild(subRowsContainer);
                     groupIndex++;
                     
