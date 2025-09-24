@@ -5,6 +5,12 @@ subscription_services:
     cost: 99.0
     status: 订阅中
     category: 购物
+  dingdong_2025:
+    name: 叮咚买菜绿卡
+    expiry_date: '2026-11-12'
+    cost: 50.0
+    status: 订阅中
+    category: 购物
   dingdong_2024:
     name: 叮咚买菜绿卡
     expiry_date: '2025-09-03'
@@ -125,3 +131,9 @@ subscription_services:
     cost: 59.8
     status: 已到期
     category: 网络服务
+  Aliyun_2025:
+    name: aliyun ECS
+    expiry_date: '2025-09-24'
+    cost: 99
+    status: 订阅中
+    category: 云服务
