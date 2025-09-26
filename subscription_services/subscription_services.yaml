@@ -133,7 +133,7 @@ subscription_services:
     category: 网络服务
   Aliyun_2025:
     name: aliyun ECS
-    expiry_date: '2025-09-24'
+    expiry_date: '2026-09-24'
     cost: 99
     status: 订阅中
     category: 云服务
