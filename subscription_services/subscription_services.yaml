@@ -21,7 +21,7 @@ subscription_services:
     name: 山姆会员
     expiry_date: '2025-11-08'
     cost: 130.0
-    status: 订阅中
+    status: 已到期
     category: 购物
   flomo_2025:
     name: Flomo Pro
