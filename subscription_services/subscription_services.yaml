@@ -33,7 +33,7 @@ subscription_services:
     name: 布丁扫描
     expiry_date: '2026-01-23'
     cost: 48.0
-    status: 订阅中
+    status: 已到期
     category: 效率工具
   flowith_2025:
     name: Flowith 会员
