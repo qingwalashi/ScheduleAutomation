@@ -27,7 +27,7 @@ subscription_services:
     name: Flomo Pro
     expiry_date: '2026-03-13'
     cost: 99.0
-    status: 订阅中
+    status: 已到期
     category: 效率工具
   buding_2025:
     name: 布丁扫描
