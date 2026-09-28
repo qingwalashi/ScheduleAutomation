@@ -141,5 +141,5 @@ subscription_services:
     name: aliyun ECS
     expiry_date: '2026-09-24'
     cost: 99
-    status: 订阅中
+    status: 已到期
     category: 云服务
