@@ -10,6 +10,6 @@ domains_ssl_expiry:
   https://nbgzy.com: '2027-01-06'
   https://nbxc.net: '2027-01-06'
   https://assetcloud.dningbo.com:8803: '2027-02-02'
-  https://asset.nbtsg.cn:8801: '2026-12-20'
-  https://manage.nbtsg.cn:8801: '2026-12-20'
+  https://asset.nbtsg.cn:8801: '2027-06-12'
+  https://manage.nbtsg.cn:8801: '2027-06-12'
   https://gzgqgw.dningbo.com:8076: '2027-02-22'
